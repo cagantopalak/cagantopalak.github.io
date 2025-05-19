@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>New Page</title>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: url('https://raw.githubusercontent.com/cagantopalak/NewPage/refs/heads/main/image.webp?token=GHSAT0AAAAAADEAYWBY2HYWEIKV4MMM2L542BILFTA') no-repeat center center fixed;
+    background-size: cover;
+    background-color: black;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: inherit;
+    filter: blur(15px) brightness(0.9);
+    z-index: -1;
+  }
+
+  .speed-dial-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 24px;
+    max-width: 900px;
+    width: 100%;
+  }
+
+  .tile {
+    position: relative;
+    background: #ffffffdd;
+    border-radius: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+    padding: 20px 10px;
+    text-decoration: none;
+    color: #333;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+  }
+  .tile:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  }
+  .tile img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    margin-bottom: 12px;
+    pointer-events: none;
+  }
+  .tile span {
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    pointer-events: none;
+  }
+  .plus {
+    width: 48px;
+    height: 48px;
+    background: #f0f0f0;
+    color: #666;
+    font-size: 32px;
+    line-height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  /* Edit and Delete buttons */
+  .actions {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .tile:hover .actions {
+    opacity: 1;
+  }
+  .actions button {
+    background: rgba(255,255,255,0.8);
+    border: none;
+    border-radius: 6px;
+    padding: 2px 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #333;
+    user-select: none;
+    line-height: 1;
+  }
+  .actions button:hover {
+    background: rgba(200,200,200,0.9);
+  }
+
+  /* Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(3px);
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+  }
+  .modal-content {
+    background: white;
+    padding: 20px 30px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0,0,0,0.2);
+    width: 300px;
+  }
+  .modal-content input {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 10px;
+    font-size: 1rem;
+  }
+  .modal-content button {
+    margin: 10px 5px 0;
+    padding: 10px 20px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  #save-site {
+    background-color: #4caf50;
+    color: white;
+  }
+  #cancel {
+    background-color: #ccc;
+  }
+</style>
+</head>
+<body>
+
+  <div class="speed-dial-grid" id="grid">
+
+    <!-- Add Site Button -->
+    <button class="tile" id="add-site" type="button">
+      <div class="plus">+</div>
+      <span>Add a site</span>
+    </button>
+  </div>
+
+  <!-- Modal for Add/Edit -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <h2 id="modal-title">Add a Site</h2>
+      <input type="text" id="site-name" placeholder="Site Name" required />
+      <input type="url" id="site-url" placeholder="https://example.com" required />
+      <button id="save-site">Save</button>
+      <button id="cancel">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    const addButton = document.getElementById("add-site");
+    const modal = document.getElementById("modal");
+    const saveButton = document.getElementById("save-site");
+    const cancelButton = document.getElementById("cancel");
+    const grid = document.getElementById("grid");
+    const modalTitle = document.getElementById("modal-title");
+    const siteNameInput = document.getElementById("site-name");
+    const siteUrlInput = document.getElementById("site-url");
+
+    let editingTile = null; // Track if we are editing an existing tile
+
+    function getFavicon(url) {
+      try {
+        const domain = new URL(url).hostname;
+        return `https://www.google.com/s2/favicons?sz=64&domain_url=${domain}`;
+      } catch {
+        return "";
+      }
+    }
+
+    function createTile(name, url) {
+      const link = document.createElement("a");
+      link.className = "tile";
+      link.href = url;
+      link.target = "_self"; // open in same tab
+
+      const img = document.createElement("img");
+      img.src = getFavicon(url);
+      img.alt = name;
+
+      const span = document.createElement("span");
+      span.textContent = name;
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      // Edit button
+      const editBtn = document.createElement("button");
+      editBtn.className = "edit-btn";
+      editBtn.title = "Edit";
+      editBtn.textContent = "✏️";
+      editBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openModalForEdit(link);
+      });
+
+      // Delete button
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "delete-btn";
+      deleteBtn.title = "Delete";
+      deleteBtn.textContent = "🗑";
+      deleteBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (confirm(`Delete "${name}"?`)) {
+          link.remove();
+          saveToLocalStorage();
+        }
+      });
+
+      actions.appendChild(editBtn);
+      actions.appendChild(deleteBtn);
+
+      link.appendChild(img);
+      link.appendChild(span);
+      link.appendChild(actions);
+
+      // Insert before add button
+      grid.insertBefore(link, addButton);
+    }
+
+    function saveToLocalStorage() {
+      const links = [...grid.querySelectorAll(".tile")]
+        .filter(el => el.tagName === "A")
+        .map(el => ({
+          name: el.querySelector("span").textContent,
+          url: el.href
+        }));
+      localStorage.setItem("speedDial", JSON.stringify(links));
+    }
+
+    function loadFromLocalStorage() {
+      const data = JSON.parse(localStorage.getItem("speedDial") || "[]");
+      data.forEach(item => createTile(item.name, item.url));
+    }
+
+    function openModalForAdd() {
+      editingTile = null;
+      modalTitle.textContent = "Add a Site";
+      siteNameInput.value = "";
+      siteUrlInput.value = "";
+      modal.style.display = "flex";
+      siteNameInput.focus();
+    }
+
+    function openModalForEdit(tile) {
+      editingTile = tile;
+      modalTitle.textContent = "Edit Site";
+      siteNameInput.value = tile.querySelector("span").textContent;
+      siteUrlInput.value = tile.href;
+      modal.style.display = "flex";
+      siteNameInput.focus();
+    }
+
+    addButton.addEventListener("click", openModalForAdd);
+
+    cancelButton.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+
+    saveButton.addEventListener("click", () => {
+      const name = siteNameInput.value.trim();
+      const url = siteUrlInput.value.trim();
+      if (!name || !url) {
+        alert("Please enter both name and a valid URL");
+        return;
+      }
+      if (editingTile) {
+        // Edit existing
+        editingTile.querySelector("span").textContent = name;
+        editingTile.href = url;
+        editingTile.querySelector("img").src = getFavicon(url);
+      } else {
+        // Add new
+        createTile(name, url);
+      }
+      saveToLocalStorage();
+      modal.style.display = "none";
+    });
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadFromLocalStorage();
+
+      // Close modal on click outside modal-content
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) modal.style.display = "none";
+      });
+
+      // Close modal on Escape key
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") modal.style.display = "none";
+      });
+    });
+  </script>
+</body>
+</html>
