@@ -23,8 +23,6 @@ body {
   gap: 15px 20px; /* less gap between tiles (row-gap, column-gap) */
   justify-content: center;
   padding: 40px;
-  background: rgba(255,255,255,.05);
-  backdrop-filter: blur(10px);
   border-radius: 16px;
 }
 
@@ -87,12 +85,36 @@ body {
   /* === ADD TILE LOOK === */
   .add-tile{font-size:40px;line-height:100px;font-weight:bold;background:rgba(255,255,255,.2)}
 
+  .tile-label {
+  display: block;
+  text-align: center;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+
   /* === MODAL === */
   .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
          background:rgba(0,0,0,.6)}
   .modal-content{background:#fff;padding:20px;border-radius:12px;min-width:300px;display:flex;flex-direction:column;gap:10px}
   .modal-content input,.modal-content button{padding:8px;font-size:14px}
   .modal-content button{cursor:pointer}
+
+  #editModal .modal-content label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0;
+  font-size: 14px;
+}
+
+#editModal .modal-content input[type="color"],
+#editModal .modal-content input[type="file"] {
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+
 </style>
 </head>
 <body>
@@ -109,6 +131,44 @@ body {
       <button id="cancelSite">Cancel</button>
     </div>
   </div>
+
+ <button id="editBtn" style="
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.7);
+  cursor: pointer;
+  z-index: 1000;
+">Edit</button>
+
+<!-- Edit Settings Modal -->
+<div class="modal" id="editModal">
+  <div class="modal-content" style="min-width:320px;">
+    <h2>Edit Settings</h2>
+
+    <label>
+      Text Color:
+      <input type="color" id="textColorInput" value="#000000" />
+    </label>
+
+    <label>
+      Tile Color:
+      <input type="color" id="tileColorInput" value="rgba(255,255,255,0.4)" />
+    </label>
+
+    <label>
+      Background Image:
+      <input type="file" id="bgFileInput" accept="image/*" />
+    </label>
+
+    <button id="saveSettingsBtn">Save</button>
+    <button id="cancelSettingsBtn">Cancel</button>
+  </div>
+</div>
+
 
 <script>
 /* ---------------------------  AUDIO BLIPS  --------------------------- */
@@ -164,9 +224,10 @@ function buildTile({name,url,icon},index){
       <button onclick="editSite(${index});event.stopPropagation()">✎</button>
       <button onclick="deleteSite(${index});event.stopPropagation()">🗑</button>
     </div>
-    <a href="${url}" style="text-decoration:none;color:inherit" draggable="false">
-      <img src="${icon||favicon(url)}" alt="">
-      <span>${name}</span>
+    <a href="${url}" style="text-decoration:none;" draggable="false">
+  <img src="${icon||favicon(url)}" alt="">
+</a>
+<span class="tile-label">${name}</span>
     </a>`;
 
   /* drag events */
@@ -296,6 +357,112 @@ function buildTile({name,url,icon}, index){
 
 /* -------------------------- INITIALISE ---------------------------- */
 renderTiles();
+
+const editBtn = document.getElementById('editBtn');
+const editModal = document.getElementById('editModal');
+const textColorInput = document.getElementById('textColorInput');
+const tileColorInput = document.getElementById('tileColorInput');
+const bgFileInput = document.getElementById('bgFileInput');
+const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+const cancelSettingsBtn = document.getElementById('cancelSettingsBtn');
+
+function openEditModal() {
+  // Load saved settings or defaults
+  textColorInput.value = localStorage.getItem('textColor') || '#000000';
+
+  // Parse saved tile color rgba string or fallback
+  const savedTileColor = localStorage.getItem('tileColor') || 'rgba(255,255,255,0.4)';
+  tileColorInput.value = rgbaToHex(savedTileColor);
+
+  editModal.style.display = 'flex';
+}
+
+function closeEditModal() {
+  editModal.style.display = 'none';
+}
+
+editBtn.addEventListener('click', openEditModal);
+cancelSettingsBtn.addEventListener('click', closeEditModal);
+window.addEventListener('keydown', e => { if(e.key === 'Escape') closeEditModal(); });
+
+// Convert rgba string to hex (approximate)
+function rgbaToHex(rgba) {
+  const parts = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+  if (!parts) return '#ffffff';
+  let r = parseInt(parts[1]).toString(16).padStart(2, '0');
+  let g = parseInt(parts[2]).toString(16).padStart(2, '0');
+  let b = parseInt(parts[3]).toString(16).padStart(2, '0');
+  return `#${r}${g}${b}`;
+}
+
+// Convert hex to rgba with alpha (fixed 0.4 for tile background)
+function hexToRgba(hex) {
+  const bigint = parseInt(hex.slice(1), 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r},${g},${b},0.4)`;
+}
+
+bgFileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const dataUrl = event.target.result;
+    document.body.style.background = `url('${dataUrl}') center/cover no-repeat fixed`;
+    localStorage.setItem('customBackground', dataUrl);
+  };
+  reader.readAsDataURL(file);
+});
+
+saveSettingsBtn.addEventListener('click', () => {
+  const textColor = textColorInput.value;
+  const tileColorHex = tileColorInput.value;
+  const tileColor = hexToRgba(tileColorHex);
+
+  localStorage.setItem('textColor', textColor);
+  localStorage.setItem('tileColor', tileColor);
+
+  // Apply changes immediately:
+  document.querySelectorAll('.tile-label').forEach(label => {
+  label.style.color = textColor;
+});
+
+  // Change tile backgrounds dynamically:
+  document.querySelectorAll('.tile').forEach(tile => {
+    tile.style.background = tileColor;
+  });
+
+  closeEditModal();
+});
+
+// On page load, restore saved settings:
+window.addEventListener('load', () => {
+  const savedBg = localStorage.getItem('customBackground');
+  if (savedBg) {
+    document.body.style.background = `url('${savedBg}') center/cover no-repeat fixed`;
+  }
+  const savedTextColor = localStorage.getItem('textColor');
+  if (savedTextColor) {
+    document.querySelectorAll('.tile-label').forEach(label => {
+  label.style.color = textColor;
+});
+  }
+  const savedTileColor = localStorage.getItem('tileColor');
+  if (savedTileColor) {
+    document.querySelectorAll('.tile').forEach(tile => {
+      tile.style.background = savedTileColor;
+    });
+  }
+});
+
+
+
+
 </script>
+
+
 </body>
 </html>
