@@ -8,7 +8,7 @@
   /* === BASIC LAYOUT === */
   *{box-sizing:border-box}html,body{height:100%;margin:0;font-family:sans-serif}
 body {
-  background: url('https://raw.githubusercontent.com/cagantopalak/cagantopalak.github.io/refs/heads/main/mani.webp')
+  background: url('')
               center/cover no-repeat fixed;
   display: flex;
   align-items: flex-start;    /* top align container */
@@ -171,6 +171,12 @@ body {
 
 
 <script>
+  /* ---------- RESTORE SAVED BACKGROUND IMMEDIATELY ---------- */
+const savedBg = localStorage.getItem('customBackground');
+if (savedBg) document.body.style.background =
+  `url('${savedBg}') center/cover no-repeat fixed`;
+
+
 /* ---------------------------  AUDIO BLIPS  --------------------------- */
 const AudioCtx = window.AudioContext||window.webkitAudioContext;
 const audioCtx = new AudioCtx();
