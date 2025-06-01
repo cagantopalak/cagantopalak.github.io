@@ -166,6 +166,11 @@ body {
 
     <button id="saveSettingsBtn">Save</button>
     <button id="cancelSettingsBtn">Cancel</button>
+    
+    <hr />
+<button id="exportBtn">Export State</button>
+<input type="file" id="importInput" accept=".json" style="display:none" />
+<button id="importBtn">Import State</button>
   </div>
 </div>
 
@@ -341,6 +346,15 @@ function buildTile({name,url,icon}, index){
   tile.addEventListener('mouseenter', hoverSound, { passive:true });
   tile.addEventListener('mousedown', clickSound, { passive:true });
 
+    /* make the whole tile open its link on click */
+  tile.addEventListener('click', e => {
+    // ignore clicks on the ✎ / 🗑 buttons
+    if (e.target.closest('.tile-buttons')) return;
+
+    // open the link
+    location.href = url;
+  });
+
   // Create the text element OUTSIDE the tile
   const label = document.createElement('span');
   label.textContent = name;
@@ -462,6 +476,63 @@ window.addEventListener('load', () => {
       tile.style.background = savedTileColor;
     });
   }
+});
+
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const importInput = document.getElementById('importInput');
+
+exportBtn.addEventListener('click', () => {
+  const data = {
+    tiles: links,
+    textColor: localStorage.getItem('textColor'),
+    tileColor: localStorage.getItem('tileColor'),
+    customBackground: localStorage.getItem('customBackground')
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'dashboard_state.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+importBtn.addEventListener('click', () => {
+  importInput.click();
+});
+
+importInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    try {
+      const data = JSON.parse(event.target.result);
+      if (!data.tiles || !Array.isArray(data.tiles)) {
+        alert('Invalid state file.');
+        return;
+      }
+
+      // Apply data
+      links = data.tiles;
+      localStorage.setItem('tiles', JSON.stringify(links));
+
+      if (data.textColor) localStorage.setItem('textColor', data.textColor);
+      if (data.tileColor) localStorage.setItem('tileColor', data.tileColor);
+      if (data.customBackground) localStorage.setItem('customBackground', data.customBackground);
+
+      // Refresh page styles
+      location.reload();
+
+    } catch (err) {
+      alert('Error importing state: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
 });
 
 
