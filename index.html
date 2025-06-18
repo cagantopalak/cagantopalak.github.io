@@ -4,18 +4,17 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>New Tab</title>
-<!-- Google Fonts - Inter -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 <style>
-/* === BASIC LAYOUT === */
+/* === BASİT === */
 *{box-sizing:border-box}html,body{height:100%;margin:0;font-family:sans-serif}
 body {
   background: url('')
               center/cover no-repeat fixed;
   display: flex;
-  align-items: flex-start;    /* top align container */
+  align-items: flex-start;   
   justify-content: center;
   padding-top: 40px;
   height: 100vh;
@@ -24,15 +23,12 @@ body {
 .container {
   display: grid;
   grid-template-columns: repeat(6, 180px);
-  gap: 15px 20px; /* less gap between tiles (row-gap, column-gap) */
+  gap: 15px 20px; 
   justify-content: center;
   padding: 40px;
   border-radius: 16px;
 }
-
-
 /* === TILE === */
-
 .tile {
   width: 180px;
   height: 100px;
@@ -44,8 +40,8 @@ body {
   cursor: grab;
   transition: 0.3s;
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.5); /* Subtle border */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Soft shadow */
+  border: 1px solid rgba(255, 255, 255, 0.5); 
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .tile img {
@@ -54,35 +50,22 @@ body {
   margin: 0;
 }
 
-/* Remove margin bottom from image */
-.tile img {
-  width: 48px;
-  height: 48px;
-  margin: 0;
-}
-
-/* Move text outside tile, centered below */
 .tile span {
-  /* This rule applies to any span inside a tile, but for labels, 
-     we will now primarily use .tile-label for specific styling */
   position: relative;
-  top: 8px;                    /* move text below the tile */
-  width: 180px;                /* same width as tile */
-  text-align: center;          /* center text horizontally */
+  top: 8px;                   
+  width: 180px;           
+  text-align: center;      
   font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   user-select: none;
-  color: white;                /* optional for contrast */
+  color: white;              
   background: transparent;
-  pointer-events: none;        /* prevent accidental interactions */
+  pointer-events: none;        
   margin: 0 auto;
-  /* Removed font-family from here to rely on .tile-label */
 }
 
-/* === ACTION BUTTONS === */
-.tile-buttons{position:absolute;top:6px;right:6px;display:flex;gap:5px;opacity:0;transition:.15s}
 .tile:hover {
   background: rgba(255,255,255,0.7);
   transform: scale(1.05);
@@ -90,21 +73,15 @@ body {
   transition: transform 0.3s ease, background 0.3s ease;
 }
 
-.tile-buttons button{background:none;border:none;font-size:12px;cursor:pointer;color:#333}
-
-/* === ADD TILE LOOK === */
-.add-tile{font-size:40px;line-height:100px;font-weight:bold;background:rgba(255,255,255,.2)}
-
 .tile-label {
   display: block;
   text-align: center;
   margin-top: 6px;
   font-size: 13px;
-  /* --- THIS IS WHERE YOU CAN CHANGE THE FONT FOR THE LABELS --- */
-  font-family: 'Inter', sans-serif; /* Changed to 'Inter' */
-  /* You can change 'Inter' to any other font name, e.g., 'Roboto', 'Arial' */
+  font-family: 'Inter', sans-serif; 
 }
 
+.add-tile{font-size:40px;line-height:100px;font-weight:bold;background:rgba(255,255,255,.2)}
 
 /* === MODAL === */
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
@@ -126,12 +103,22 @@ body {
   margin-left: 10px;
   cursor: pointer;
 }
-/* Hide the old hover buttons completely */
-.tile-buttons{display:none!important;}
 
-/* Simple custom context-menu look */
+.editbtn{
+ position: fixed;
+  top: 785px;
+  right: 20px;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.3);;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+/* sağ tık burger menü */
 .context-menu{
-  position:fixed;            /* follow cursor */
+  position:fixed;
   display:none;
   background:#fff;
   border-radius:8px;
@@ -145,29 +132,30 @@ body {
   border:none;
   padding:6px 12px;
   font-size:14px;
+  font-family: Din, Geneva, Tahoma, sans-serif;
   width:100%;
   text-align:left;
   cursor:pointer;
 }
 .context-menu button:hover{background:#eee;}
 
-/* --- Google Search Bar Styles --- */
+/* --- Google Bar --- */
 .search-container {
-  position: absolute; /* Position absolutely to place it at the very top */
-  top: 20px; /* Distance from the top */
-  left: 50%; /* Center horizontally */
-  transform: translateX(-50%); /* Adjust for perfect centering */
-  z-index: 1001; /* Ensure it's above other elements */
+  position: absolute; 
+  top: 20px; 
+  left: 50%; 
+  transform: translateX(-50%); 
+  z-index: 1001; 
 }
 
 .search-container form {
   display: flex;
-  border-radius: 20px; /* Rounded corners for the whole bar */
+  border-radius: 20px; 
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.3); /* Slightly transparent white background */
+  background: rgba(255, 255, 255, 0.3); 
 
-  border: 1px solid rgba(255, 255, 255, 0.5); /* Subtle border */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Soft shadow */
+  border: 1px solid rgba(255, 255, 255, 0.5); 
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); 
 }
 
 .search-container form:hover {
@@ -184,16 +172,21 @@ body {
   transition: transform 0.3s ease, background 0.3s ease;
 }
 
-
+.search-container form.pressed {
+  background: rgba(255, 255, 255, 0.646);
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, background 0.3s ease;
+}
 
 .search-input {
   border: none;
-  padding: 12px 25px; /* Increased padding for a bigger feel */
-  font-size: 18px; /* Larger font size */
+  padding: 12px 25px; 
+  font-size: 18px; 
   background: transparent;
   outline: none;
   color: white;
-  width: 1120px; /* Significantly longer width */
+  width: 1120px; 
   caret-color: white;
 }
 
@@ -204,7 +197,7 @@ body {
 .search-button {
   background: transparent;
   border: none;
-  padding: 12px 18px; /* Adjusted button padding to match input */
+  padding: 12px 18px; 
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -213,52 +206,25 @@ body {
 
 .search-button .search-icon {
   color: white;
-  width: 24px; /* Larger icon */
-  height: 24px; /* Larger icon */
+  width: 24px; 
+  height: 24px; 
 }
 
-/* Ensure responsiveness for smaller screens */
-@media (max-width: 768px) {
-  .search-input {
-    width: 300px; /* Adjusted smaller width for mobile */
-    padding: 10px 15px;
-    font-size: 16px;
-  }
-  .search-button {
-    padding: 10px 15px;
-  }
-  .search-button .search-icon {
-    width: 20px;
-    height: 20px;
-  }
-}
-
-/* Digital Clock Styles */
+/* saat */
 #digital-clock {
-  position: fixed; /* Position relative to the viewport */
-  bottom: 20px; /* 20px from the bottom */
-  left: 20px; /* 20px from the left */
-  /* Removed background-color, padding, border-radius, box-shadow */
-  color: white; /* White text color */
-  font-family: 'TS Block Bold', sans-serif; /* Modern font, changed to Inter */
-  font-size: 4em; /* Significantly larger font size */
-  z-index: 1000; /* Ensure it's above other content */
-  display: flex; /* Use flexbox for centering content if needed */
+  position: fixed; 
+  bottom: 20px; 
+  left: 20px; 
+  color: white;
+  font-family: 'TS Block Bold', sans-serif;
+  font-size: 4em;
+  z-index: 1000;
+  display: flex;
   align-items: center;
   justify-content: center;
-  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7); /* Drop shadow effect */
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7); 
 }
 
-/* Removed hover effect as there's no background to transition */
-
-/* Responsive adjustments for smaller screens */
-@media (max-width: 768px) {
-  #digital-clock {
-    font-size: 2.5em; /* Smaller font on mobile */
-    bottom: 15px; /* Adjust position for mobile */
-    left: 15px;
-  }
-}
 
 </style>
 </head>
@@ -286,17 +252,7 @@ body {
     </div>
   </div>
 
- <button id="editBtn" style="
-  position: fixed;
-  top: 785px;
-  right: 20px;
-  padding: 10px 15px;
-  border: none;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.3);;
-  cursor: pointer;
-  z-index: 1000;
-">Edit</button>
+ <button class="editbtn"  id="editBtn">Edit</button>
 
 <!-- Edit Settings Modal -->
 <div class="modal" id="editModal">
@@ -316,9 +272,11 @@ body {
     <option value="'Roboto', sans-serif">Roboto</option>
     <option value="'Georgia', serif">Georgia</option>
     <option value="'Courier New', monospace">Courier New</option>
+    <option value="'din', serif">din</option>
+    <option value="'TS Block Bold', serif">TS Block Bold</option>
+
     </select>
     </label>
-
 
     <label>
       Tile Color:
@@ -329,25 +287,21 @@ body {
       Background Image:
       <input type="file" id="bgFileInput" accept="image/*" />
     </label>
-
-    <button id="saveSettingsBtn">Save</button>
-    <button id="cancelSettingsBtn">Cancel</button>
-
-    <hr />
+    
 <button id="exportBtn">Export State</button>
 <input type="file" id="importInput" accept=".json" style="display:none" />
 <button id="importBtn">Import State</button>
+    <button id="saveSettingsBtn">Save</button>
+    <button id="cancelSettingsBtn">Cancel</button>
+
   </div>
 </div>
 
 <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
 
 
-
-
-<!-- Digital Clock Container -->
+<!-- saat -->
   <div id="digital-clock"></div>
-
 
 
 <script>
@@ -423,9 +377,6 @@ function buildTile({name,url,icon}, index){
   tile.dataset.index = index;
 
   tile.innerHTML = `
-    <div class="tile-buttons">
-      <button onclick="editSite(${index});event.stopPropagation()">✎</button>
-      <button onclick="deleteSite(${index});event.stopPropagation()">🗑</button>
     </div>
     <a href="${url}" style="text-decoration:none;color:inherit" draggable="false">
       <img src="${icon||favicon(url)}" alt="">
@@ -840,12 +791,13 @@ searchInput.addEventListener('input', () => {
 
 // Add hover class on click/focus
 searchInput.addEventListener('focus', () => {
-  searchForm.classList.add('hovered');
+  searchForm.classList.add('pressed');
+
 });
 
 // Remove hover class when clicking away
 searchInput.addEventListener('blur', () => {
-  searchForm.classList.remove('hovered');
+  searchForm.classList.remove('pressed');
 });
 
 
