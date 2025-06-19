@@ -16,6 +16,18 @@ body {
   justify-content: center;
   padding-top: 50px;
   height: 100vh;
+  /* Add a filter for blurring when modal is open */
+  transition: filter 0.3s ease;
+}
+
+body.modal-open > *:not(.modal):not(#digital-clock):not(.search-container) {
+  filter: brightness(0.7);
+  pointer-events: none; /* Disable interaction with blurred elements */
+}
+
+body.modal-open #digital-clock,
+body.modal-open .search-container {
+  filter: brightness(0.7); /* Apply blur and dimming to clock and search bar */
 }
 
 .container {
@@ -77,37 +89,117 @@ body {
   display:none;
   align-items:center;
   justify-content:center;
-  background:rgba(0,0,0,.6)}
+  background:rgba(0,0,0,.6);
+  z-index: 9999; /* Ensure modals are above blurred content */
+}
 
 .modal-content{
-  background:#ffffff83;
-  padding:20px;
-  border-radius:12px;
-  min-width:300px;
+  background:rgba(255, 255, 255, 0.4); /* Slightly less transparent */
+  padding:30px; /* Increased padding */
+  border-radius:16px; /* More rounded corners */
+  min-width:400px; /* Wider modal */
   display:flex;
   flex-direction:column;
-  gap:10px}
+  gap:10px; /* Adjusted gap between main elements/groups */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* Stronger shadow */
+  backdrop-filter: blur(10px); /* Frosted glass effect */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
+}
 
-.modal-content input,.modal-content button{
-  padding:8px;
-  font-size:14px}
+.modal-content h2 {
+  color: #333;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 1.8em;
+  font-weight: bold;
+}
 
-.modal-content button{
-  cursor:pointer}
-
-#editModal .modal-content label {
+.modal-content label {
+  color: #555;
+  font-size: 15px;
+  font-weight: 600;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 10px 0;
-  font-size: 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05); /* Separator */
 }
 
-#editModal .modal-content input[type="color"],
-#editModal .modal-content input[type="file"] {
-  margin-left: 10px;
-  cursor: pointer;
+.modal-content label:last-of-type {
+    border-bottom: none;
+    margin-bottom: 15px;
 }
+
+.modal-content input[type="text"],
+.modal-content input[type="url"],
+.modal-content input[type="color"],
+.modal-content select,
+.modal-content input[type="file"] {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.7);
+  color: #333;
+  width: calc(100% - 120px); /* Adjust width to make room for label */
+}
+
+.modal-content input[type="color"] {
+    width: 60px; /* Smaller width for color picker */
+    padding: 2px;
+}
+
+.modal-content button{
+  padding: 12px 20px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor:pointer;
+  transition: all 0.2s ease;
+  font-weight: bold;
+}
+
+.modal-content button#saveSettingsBtn,
+.modal-content button#saveSite {
+  background-color: #4CAF50; /* Green */
+  color: white;
+  border: none;
+}
+.modal-content button#saveSettingsBtn:hover,
+.modal-content button#saveSite:hover {
+  background-color: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content button#cancelSettingsBtn,
+.modal-content button#cancelSite,
+.modal-content button#resetBgBtn {
+  background-color: #f44336; /* Red */
+  color: white;
+  border: none;
+}
+.modal-content button#cancelSettingsBtn:hover,
+.modal-content button#cancelSite:hover,
+.modal-content button#resetBgBtn:hover {
+  background-color: #da190b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content button#exportBtn,
+.modal-content button#importBtn {
+  background-color: #008CBA; /* Blue */
+  color: white;
+  border: none;
+}
+.modal-content button#exportBtn:hover,
+.modal-content button#importBtn:hover {
+  background-color: #007bb5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
 
 .editbtn{
   /* Original styles, but changed display to none */
@@ -160,22 +252,16 @@ body {
   background: rgba(255, 255, 255, 0.3); 
   border: 2px solid rgba(255, 255, 255, 0.5); 
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); 
+  transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease; /* Added border-color to transition */
 }
 
 .search-container form:hover {
-  background: rgba(255,255,255,0.3);
-  transform: scale(1.05);
+  background: rgba(255,255,255,0.4); /* Slightly more opaque on hover */
+  transform: scale(1.02); /* Reduced scale slightly for search bar */
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-  transition: transform 0.3s ease, background 0.3s ease;
 }
 
-.search-container form.hovered {
-  background: rgba(255, 255, 255, 0.468);
-  transform: scale(1.05);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-  transition: transform 0.10s ease, background 0.3s ease;
-}
-
+.search-container form.hovered,
 .search-container form.pressed {
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
   transition: transform 0.10s ease, background 0.3s ease;
@@ -226,22 +312,79 @@ body {
   justify-content: center;
   text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7); 
 }
-#resetBgBtn {
-  background: rgba(255, 255, 255, 0.2); /* A very light, subtle background */
-  border: 1px solid rgba(255, 255, 255, 0.4); /* A light border */
-  color: rgba(255, 255, 255, 0.9); /* White text, slightly transparent */
-  padding: 5px 10px; /* Small padding */
-  border-radius: 6px; /* Slightly rounded corners */
-  cursor: pointer;
-  font-size: 12px; /* Smaller font size */
-  transition: background 0.3s ease, border-color 0.3s ease;
-  margin-top: 10px; /* Add some space above it if needed */
-  align-self: flex-end; /* Aligns to the right if in a flex container (modal-content is flex) */
+
+/* New styles for grouping settings in edit modal */
+.setting-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start; /* Align items to the start, they will wrap */
+    gap: 20px; /* Gap between items in the group (horizontal and vertical) */
+    margin-bottom: 10px; /* Space after the group */
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05); /* Separator for the whole group */
 }
 
-#resetBgBtn:hover {
-  background: rgba(255, 255, 255, 0.3); /* Slightly more opaque on hover */
-  border-color: rgba(255, 255, 255, 0.6);
+.setting-group:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+/* Adjust labels within setting-group to sit side-by-side */
+.setting-group label {
+    flex: 1 1 auto; /* Allow labels to grow and shrink */
+    min-width: 250px; /* Ensure labels have enough space for text + input */
+    border-bottom: none; /* Remove individual label borders within a group */
+    padding: 0; /* Remove individual padding from labels within a group */
+}
+
+/* Adjust inputs/selects within setting-group labels */
+.setting-group label input[type="text"],
+.setting-group label input[type="url"],
+.setting-group label input[type="color"],
+.setting-group label select,
+.setting-group label input[type="file"] {
+    width: auto; /* Override calc(100% - 120px) */
+    flex-grow: 1; /* Allow them to take available space */
+    margin-left: 10px; /* Space between label text and input */
+}
+
+.setting-group label input[type="color"] {
+    width: 60px; /* Keep specific width for color picker */
+    flex-grow: 0; /* Don't let it grow */
+}
+
+/* Specific style for the background input row to accommodate the button */
+.modal-content label.background-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Space between file input and button */
+    border-bottom: none; /* Remove border from this specific label */
+    padding: 0; /* Remove padding from this specific label */
+    flex: 1 1 100%; /* Ensure it takes full width of the group */
+}
+
+.modal-content label.background-input-row input[type="file"] {
+    flex-grow: 1; /* Allow file input to grow */
+    width: auto; /* Reset explicit width */
+}
+
+.modal-content label.background-input-row button#resetBgBtn {
+    padding: 8px 12px; /* Smaller padding */
+    font-size: 14px; /* Smaller font */
+    width: auto; /* Don't force full width */
+    flex-shrink: 0; /* Prevent it from shrinking too much */
+    margin-top: 0; /* Remove default margin-top if any */
+}
+
+
+/* Group buttons if desired */
+.button-group {
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: wrap;
 }
 
 </style>
@@ -262,7 +405,7 @@ body {
   <div class="modal" id="siteModal">
     <div class="modal-content">
       <h2 id="modalTitle">Add a Site</h2>
-      <input id="siteName"  placeholder="Site Name">
+      <input id="siteName"  placeholder="Site Name" type="text">
       <input id="siteURL"   placeholder="https://example.com" type="url">
       <input id="siteIcon"  placeholder="Icon URL (optional)" type="url">
       <button id="saveSite">Save</button>
@@ -275,52 +418,63 @@ body {
 </div>
 
 <div class="modal" id="editModal">
-  <div class="modal-content" style="min-width:320px;">
+  <div class="modal-content">
     <h2>Edit Settings</h2>
 
-    <label>
-      Text Color:
-      <input type="color" id="textColorInput" value="#000000" />
-    </label>
+    <div class="setting-group">
+      <label>
+        Text Color:
+        <input type="color" id="textColorInput" value="#000000" />
+      </label>
+      <label>
+        Clock Color:
+        <input type="color" id="clockColorInput" value="#FFFFFF" />
+      </label>
+      <label>
+        Tile & Search Bar Color:
+        <input type="color" id="tileColorInput" value="rgba(255,255,255,0.4)" />
+      </label>
+    </div>
     
-    <label>
-    Font Family:
-    <select id="fontFamilySelect">
-    <option value="'Roboto', sans-serif">DEFAULT Roboto</option>
-    <option value="'Inter', sans-serif">Inter</option>
-    <option value="'Arial', sans-serif">Arial</option>
-    <option value="'Georgia', serif">Georgia</option>
-    <option value="'Courier New', monospace">Courier New</option>
-    <option value="'din', serif">din</option>
-    <option value="'TS Block Bold', serif">TS Block Bold</option>
-    <option value="'climate crisis', serif">climate crisis</option>
+    <div class="setting-group">
+      <label>
+          Font Family:
+          <select id="fontFamilySelect">
+          <option value="'Roboto', sans-serif">DEFAULT Roboto</option>
+          <option value="'Inter', sans-serif">Inter</option>
+          <option value="'Arial', sans-serif">Arial</option>
+          <option value="'Georgia', serif">Georgia</option>
+          <option value="'Courier New', monospace">Courier New</option>
+          <option value="'din', serif">din</option>
+          <option value="'TS Block Bold', serif">TS Block Bold</option>
+          <option value="'climate crisis', serif">climate crisis</option>
+          </select>
+      </label>
 
-    </select>
-    </label>
+      <label>
+          Clock Font: <select id="clockFontFamilySelect">
+             <option value="'climate crisis', serif">DEFAULT climate crisis</option>
+              <option value="'Roboto', sans-serif">Roboto</option>
+              <option value="'TS Block Bold', serif">TS Block Bold</option>
+          </select>
+      </label>
+    </div>
 
-    <label>
-        Clock Font: <select id="clockFontFamilySelect">
-           <option value="'climate crisis', serif">DEFAULT climate crisis</option>
-            <option value="'Roboto', sans-serif">Roboto</option>
-            <option value="'TS Block Bold', serif">TS Block Bold (N eeds to be downloaded)</option>
-        </select>
-    </label>
-
-    <label>
-      Tile Color:
-      <input type="color" id="tileColorInput" value="rgba(255,255,255,0.4)" />
-    </label>
-    <button id="resetBgBtn">Reset background</button>
-    <label>
-      Background Image:
-      <input type="file" id="bgFileInput" accept="image/*" />
-    </label>
+    <div class="setting-group"> <!-- New setting group for background to align items -->
+      <label class="background-input-row">
+        Background Image:
+        <input type="file" id="bgFileInput" accept="image/*" />
+        <button id="resetBgBtn">Reset</button>
+      </label>
+    </div>
     
-<button id="exportBtn">Export State</button>
-<input type="file" id="importInput" accept=".json" style="display:none" />
-<button id="importBtn">Import State</button>
-    <button id="saveSettingsBtn">Save</button>
-    <button id="cancelSettingsBtn">Cancel</button>
+    <div class="button-group">
+      <button id="exportBtn">Export State</button>
+      <input type="file" id="importInput" accept=".json" style="display:none" />
+      <button id="importBtn">Import State</button>
+      <button id="saveSettingsBtn">Save Settings</button>
+      <button id="cancelSettingsBtn">Cancel</button>
+    </div>
 
   </div>
 </div>
@@ -487,6 +641,7 @@ body {
   /* --------------------------  MODAL LOGIC  ---------------------------- */
   function openModal(edit = false) {
     modal.style.display = 'flex';
+    document.body.classList.add('modal-open'); // Add class to body
     modalTitle.textContent = edit ? 'Edit Site' : 'Add a Site';
     if (!edit) {
       nameInput.value = urlInput.value = iconInput.value = '';
@@ -497,6 +652,7 @@ body {
 
   function closeModal() {
     modal.style.display = 'none';
+    document.body.classList.remove('modal-open'); // Remove class from body
   }
 
   saveBtn.onclick = () => {
@@ -578,6 +734,7 @@ body {
   const editBtn = document.getElementById('editBtn');
   const editModal = document.getElementById('editModal');
   const textColorInput = document.getElementById('textColorInput');
+  const clockColorInput = document.getElementById('clockColorInput'); // New: Clock Color Input
   const tileColorInput = document.getElementById('tileColorInput');
   const bgFileInput = document.getElementById('bgFileInput');
   const saveSettingsBtn = document.getElementById('saveSettingsBtn');
@@ -603,6 +760,7 @@ body {
   function openEditModal() {
     // Load saved settings or defaults
     textColorInput.value = localStorage.getItem('textColor') || '#FFFFFF'; // Default to white
+    clockColorInput.value = localStorage.getItem('clockColor') || '#FFFFFF'; // New: Default clock color to white
     const savedTileColor = localStorage.getItem('tileColor') || 'rgba(255,255,255,0.4)';
     tileColorInput.value = rgbaToHex(savedTileColor);
 
@@ -622,13 +780,14 @@ body {
         clockFontFamilySelect.value = "'climate crisis', serif"; // Default if nothing saved
     }
 
-
     editModal.style.display = 'flex';
+    document.body.classList.add('modal-open'); // Add class to body when edit modal opens
     hideEditButton(); // Hide the edit button once the modal is opened
   }
 
   function closeEditModal() {
     editModal.style.display = 'none';
+    document.body.classList.remove('modal-open'); // Remove class from body when edit modal closes
   }
 
   // editBtn.addEventListener('click', openEditModal); // This will be handled by the right-click now
@@ -671,12 +830,14 @@ body {
 
   saveSettingsBtn.addEventListener('click', () => {
     const textColor = textColorInput.value;
+    const clockColor = clockColorInput.value; // New: Get clock color
     const tileColorHex = tileColorInput.value;
     const tileColor = hexToRgba(tileColorHex);
     const selectedFont = fontFamilySelect.value;
     const selectedClockFont = clockFontFamilySelect.value;
 
     localStorage.setItem('textColor', textColor);
+    localStorage.setItem('clockColor', clockColor); // New: Save clock color
     localStorage.setItem('tileColor', tileColor);
     localStorage.setItem('fontFamily', selectedFont);
     localStorage.setItem('clockFontFamily', selectedClockFont);
@@ -691,7 +852,14 @@ body {
       tile.style.background = tileColor;
     });
 
+    // Apply color to search bar as well
+    document.querySelector('.search-container form').style.background = tileColor;
+    document.querySelector('.search-container form').style.borderColor = tileColor.replace('0.4)', '0.5)');
+
+
     document.getElementById('digital-clock').style.fontFamily = selectedClockFont;
+    document.getElementById('digital-clock').style.color = clockColor; // New: Apply clock color
+
 
     closeEditModal();
   });
@@ -706,11 +874,18 @@ body {
         label.style.color = savedTextColor; /* Use savedTextColor here */
       });
     }
+    const savedClockColor = localStorage.getItem('clockColor'); // New: Get saved clock color
+    if (savedClockColor) {
+      document.getElementById('digital-clock').style.color = savedClockColor; // New: Apply saved clock color
+    }
     const savedTileColor = localStorage.getItem('tileColor');
     if (savedTileColor) {
       document.querySelectorAll('.tile').forEach(tile => {
         tile.style.background = savedTileColor;
       });
+      // Also apply to search bar on load
+      document.querySelector('.search-container form').style.background = savedTileColor;
+      document.querySelector('.search-container form').style.borderColor = savedTileColor.replace('0.4)', '0.5)');
     }
 
     const savedFontFamily = localStorage.getItem('fontFamily');
@@ -744,7 +919,10 @@ body {
     const data = {
       tiles: links,
       textColor: localStorage.getItem('textColor'),
+      clockColor: localStorage.getItem('clockColor'), // New: Export clock color
       tileColor: localStorage.getItem('tileColor'),
+      fontFamily: localStorage.getItem('fontFamily'), // Export font family
+      clockFontFamily: localStorage.getItem('clockFontFamily'), // Export clock font family
       customBackground: localStorage.getItem('customBackground')
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -782,8 +960,12 @@ body {
         localStorage.setItem('tiles', JSON.stringify(links));
 
         if (data.textColor) localStorage.setItem('textColor', data.textColor);
+        if (data.clockColor) localStorage.setItem('clockColor', data.clockColor); // New: Import clock color
         if (data.tileColor) localStorage.setItem('tileColor', data.tileColor);
         if (data.customBackground) localStorage.setItem('customBackground', data.customBackground);
+        if (data.fontFamily) localStorage.setItem('fontFamily', data.fontFamily); // Import font family
+        if (data.clockFontFamily) localStorage.setItem('clockFontFamily', data.clockFontFamily); // Import clock font family
+
 
         // Refresh page styles
         location.reload();
@@ -825,7 +1007,11 @@ body {
     genericModalCancelBtn.style.display = 'none';
     genericModalCloseBtn.style.display = 'inline-block';
     genericModal.style.display = 'flex';
-    genericModalCloseBtn.onclick = () => genericModal.style.display = 'none';
+    document.body.classList.add('modal-open'); // Add class to body
+    genericModalCloseBtn.onclick = () => {
+        genericModal.style.display = 'none';
+        document.body.classList.remove('modal-open'); // Remove class from body
+    };
   }
 
   function showCustomConfirm(message, onConfirm) {
@@ -835,13 +1021,16 @@ body {
     genericModalCancelBtn.style.display = 'inline-block';
     genericModalCloseBtn.style.display = 'none';
     genericModal.style.display = 'flex';
+    document.body.classList.add('modal-open'); // Add class to body
 
     genericModalConfirmBtn.onclick = () => {
       onConfirm();
       genericModal.style.display = 'none';
+      document.body.classList.remove('modal-open'); // Remove class from body
     };
     genericModalCancelBtn.onclick = () => {
       genericModal.style.display = 'none';
+      document.body.classList.remove('modal-open'); // Remove class from body
     };
   }
 
