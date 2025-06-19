@@ -11,12 +11,10 @@
 /* === BASİT === */
 *{box-sizing:border-box}html,body{height:100%;margin:0;font-family:sans-serif}
 body {
-  background: url('')
-              center/cover no-repeat fixed;
   display: flex;
   align-items: flex-start;   
   justify-content: center;
-  padding-top: 40px;
+  padding-top: 50px;
   height: 100vh;
 }
 
@@ -40,30 +38,15 @@ body {
   cursor: grab;
   transition: 0.3s;
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.5); 
+  border: 2px solid rgba(255, 255, 255, 0.5); 
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  
 }
 
-.tile img {
+.tile img { 
   width: 48px;
   height: 48px;
   margin: 0;
-}
-
-.tile span {
-  position: relative;
-  top: 8px;                   
-  width: 180px;           
-  text-align: center;      
-  font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  user-select: none;
-  color: white;              
-  background: transparent;
-  pointer-events: none;        
-  margin: 0 auto;
 }
 
 .tile:hover {
@@ -81,14 +64,36 @@ body {
   font-family: 'Inter', sans-serif; 
 }
 
-.add-tile{font-size:40px;line-height:100px;font-weight:bold;background:rgba(255,255,255,.2)}
+.add-tile {
+    font-size:40px;
+    line-height:100px;
+    color:rgba(255, 255, 255, 0.7);
+}
 
 /* === MODAL === */
-.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
-          background:rgba(0,0,0,.6)}
-.modal-content{background:#fff;padding:20px;border-radius:12px;min-width:300px;display:flex;flex-direction:column;gap:10px}
-.modal-content input,.modal-content button{padding:8px;font-size:14px}
-.modal-content button{cursor:pointer}
+.modal{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.6)}
+
+.modal-content{
+  background:#ffffff83;
+  padding:20px;
+  border-radius:12px;
+  min-width:300px;
+  display:flex;
+  flex-direction:column;
+  gap:10px}
+
+.modal-content input,.modal-content button{
+  padding:8px;
+  font-size:14px}
+
+.modal-content button{
+  cursor:pointer}
 
 #editModal .modal-content label {
   display: flex;
@@ -153,8 +158,7 @@ body {
   border-radius: 20px; 
   overflow: hidden;
   background: rgba(255, 255, 255, 0.3); 
-
-  border: 1px solid rgba(255, 255, 255, 0.5); 
+  border: 2px solid rgba(255, 255, 255, 0.5); 
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); 
 }
 
@@ -166,17 +170,15 @@ body {
 }
 
 .search-container form.hovered {
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.468);
   transform: scale(1.05);
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-  transition: transform 0.3s ease, background 0.3s ease;
+  transition: transform 0.10s ease, background 0.3s ease;
 }
 
 .search-container form.pressed {
-  background: rgba(255, 255, 255, 0.646);
-  transform: scale(1.05);
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-  transition: transform 0.3s ease, background 0.3s ease;
+  transition: transform 0.10s ease, background 0.3s ease;
 }
 
 .search-input {
@@ -225,7 +227,6 @@ body {
   text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7); 
 }
 
-
 </style>
 </head>
 <body>
@@ -238,7 +239,7 @@ body {
     </form>
 </div>
 
-  <div class="container" id="tilesContainer"></div>
+    <div class="container" id="tilesContainer"></div>
 
   <!-- Modal -->
   <div class="modal" id="siteModal">
@@ -277,6 +278,7 @@ body {
 
     </select>
     </label>
+
 
     <label>
       Tile Color:
@@ -492,6 +494,13 @@ function persist(rerender=true){
 }
 
 /* -------------------------- INITIALISE ---------------------------- */
+window.onload = function() {
+    const searchInput = document.querySelector('.search-input');
+    if (searchInput) { // Check if the element exists
+        searchInput.focus(); // Automatically focuses the search input
+    }
+};
+
 renderTiles();
 
 const editBtn = document.getElementById('editBtn');
@@ -797,15 +806,9 @@ searchInput.addEventListener('focus', () => {
 
 // Remove hover class when clicking away
 searchInput.addEventListener('blur', () => {
-  searchForm.classList.remove('pressed');
+  searchForm.classList.remove('hovered');
+  searchInput.value = ''; 
 });
-
-
-
-
-
 </script>
-
-
 </body>
 </html>
