@@ -226,7 +226,23 @@ body {
   justify-content: center;
   text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7); 
 }
+#resetBgBtn {
+  background: rgba(255, 255, 255, 0.2); /* A very light, subtle background */
+  border: 1px solid rgba(255, 255, 255, 0.4); /* A light border */
+  color: rgba(255, 255, 255, 0.9); /* White text, slightly transparent */
+  padding: 5px 10px; /* Small padding */
+  border-radius: 6px; /* Slightly rounded corners */
+  cursor: pointer;
+  font-size: 12px; /* Smaller font size */
+  transition: background 0.3s ease, border-color 0.3s ease;
+  margin-top: 10px; /* Add some space above it if needed */
+  align-self: flex-end; /* Aligns to the right if in a flex container (modal-content is flex) */
+}
 
+#resetBgBtn:hover {
+  background: rgba(255, 255, 255, 0.3); /* Slightly more opaque on hover */
+  border-color: rgba(255, 255, 255, 0.6);
+}
 
 </style>
 </head>
@@ -256,7 +272,6 @@ body {
 
  <div class="context-menu" id="editButtonContextMenu" style="display:none;">
   <button id="editBtn" class="context-menu-button">✎ Edit Settings</button>
-  <button id="bookmarks" class="context-menu-button">Bookmarks</button>
 </div>
 
 <div class="modal" id="editModal">
@@ -271,9 +286,9 @@ body {
     <label>
     Font Family:
     <select id="fontFamilySelect">
+    <option value="'Roboto', sans-serif">DEFAULT Roboto</option>
     <option value="'Inter', sans-serif">Inter</option>
     <option value="'Arial', sans-serif">Arial</option>
-    <option value="'Roboto', sans-serif">Roboto</option>
     <option value="'Georgia', serif">Georgia</option>
     <option value="'Courier New', monospace">Courier New</option>
     <option value="'din', serif">din</option>
@@ -284,10 +299,18 @@ body {
     </label>
 
     <label>
+        Clock Font: <select id="clockFontFamilySelect">
+           <option value="'climate crisis', serif">DEFAULT climate crisis</option>
+            <option value="'Roboto', sans-serif">Roboto</option>
+            <option value="'TS Block Bold', serif">TS Block Bold (N eeds to be downloaded)</option>
+        </select>
+    </label>
+
+    <label>
       Tile Color:
       <input type="color" id="tileColorInput" value="rgba(255,255,255,0.4)" />
     </label>
-
+    <button id="resetBgBtn">Reset background</button>
     <label>
       Background Image:
       <input type="file" id="bgFileInput" accept="image/*" />
@@ -311,389 +334,472 @@ body {
 
 <script>
   /* ---------- RESTORE SAVED BACKGROUND IMMEDIATELY ---------- */
-const savedBg = localStorage.getItem('customBackground');
-if (savedBg) document.body.style.background =
-  `url('${savedBg}') center/cover no-repeat fixed`;
+  // 1. Define defaultBackground first
+  const defaultBackground = 'https://archive.org/download/windows-xp-bliss-4k-lu-3840x2400/windows-xp-bliss-4k-lu-3840x2400.jpg'; // IMPORTANT: Replace with your actual image URL!
+
+  const savedBg = localStorage.getItem('customBackground');
+  if (savedBg) {
+    document.body.style.background = `url('${savedBg}') center/cover no-repeat fixed`;
+  } else {
+    // 2. Now defaultBackground is guaranteed to be defined when used here
+    document.body.style.background = `url('${defaultBackground}') center/cover no-repeat fixed`;
+  }
+
+  /* ---------------------------  AUDIO BLIPS  --------------------------- */
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = new AudioCtx();
+
+  /* Play a quick tone (freq Hz, seconds) */
+  function playTone(freq, dur) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = freq;
+    gain.gain.value = 0.06; // very subtle volume
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    osc.stop(audioCtx.currentTime + dur);
+  }
+  const hoverSound = () => playTone(500, 0.06); // soft blip
+  const clickSound = () => playTone(180, 0.08); // slightly lower
+
+  // Make search bar play hover sound
+  document.querySelector('.search-container form')
+    .addEventListener('mouseenter', hoverSound, {
+      passive: true
+    });
+
+  document.querySelector('.search-container form')
+    .addEventListener('submit', () => clickSound());
 
 
-/* ---------------------------  AUDIO BLIPS  --------------------------- */
-const AudioCtx = window.AudioContext||window.webkitAudioContext;
-const audioCtx = new AudioCtx();
 
-/* Play a quick tone (freq Hz, seconds) */
-function playTone(freq, dur){
-  if(audioCtx.state==='suspended') audioCtx.resume();
-  const osc = audioCtx.createOscillator();
-  const gain= audioCtx.createGain();
-  osc.frequency.value=freq;
-  gain.gain.value=0.06;          // very subtle volume
-  osc.connect(gain);gain.connect(audioCtx.destination);
-  osc.start();
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+dur);
-  osc.stop(audioCtx.currentTime+dur);
-}
-const hoverSound = ()=>playTone(500,0.06);  // soft blip
-const clickSound = ()=>playTone(180,0.08);  // slightly lower
+  /* -----------------------  STORAGE & STATE  --------------------------- */
+  let links = JSON.parse(localStorage.getItem("tiles") || "[]");
+  let editIndex = null;
 
-// Make search bar play hover sound
-document.querySelector('.search-container form')
-        .addEventListener('mouseenter', hoverSound, { passive: true });
-        
-document.querySelector('.search-container form')
-        .addEventListener('submit', () => clickSound());
+  /* ELEMENT HANDLES */
+  const container = document.getElementById('tilesContainer');
+  const modal = document.getElementById('siteModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const nameInput = document.getElementById('siteName');
+  const urlInput = document.getElementById('siteURL');
+  const iconInput = document.getElementById('siteIcon');
+  const saveBtn = document.getElementById('saveSite');
+  const cancelBtn = document.getElementById('cancelSite');
 
+  /* Helper to fetch favicon */
+  const favicon = url => `https://www.google.com/s2/favicons?sz=64&domain_url=${new URL(url).hostname}`;
 
+  /* -------------------------- TILE RENDERING --------------------------- */
+  function renderTiles() {
+    container.innerHTML = '';
+    links.forEach((link, i) => container.appendChild(buildTile(link, i)));
+    container.appendChild(buildAddButton());
+  }
 
-/* -----------------------  STORAGE & STATE  --------------------------- */
-let links = JSON.parse(localStorage.getItem("tiles")||"[]");
-let editIndex = null;
+  /* Build a single link tile */
+  function buildTile({
+    name,
+    url,
+    icon
+  }, index) {
+    const wrapper = document.createElement('div');
+    wrapper.style.display = 'flex';
+    wrapper.style.flexDirection = 'column';
+    wrapper.style.alignItems = 'center';
+    wrapper.style.width = '180px'; // match tile width
 
-/* ELEMENT HANDLES */
-const container    = document.getElementById('tilesContainer');
-const modal        = document.getElementById('siteModal');
-const modalTitle = document.getElementById('modalTitle');
-const nameInput    = document.getElementById('siteName');
-const urlInput     = document.getElementById('siteURL');
-const iconInput    = document.getElementById('siteIcon');
-const saveBtn      = document.getElementById('saveSite');
-const cancelBtn    = document.getElementById('cancelSite');
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.draggable = true;
+    tile.dataset.index = index;
 
-/* Helper to fetch favicon */
-const favicon = url=>`https://www.google.com/s2/favicons?sz=64&domain_url=${new URL(url).hostname}`;
-
-/* -------------------------- TILE RENDERING --------------------------- */
-function renderTiles(){
-  container.innerHTML='';
-  links.forEach((link,i)=>container.appendChild(buildTile(link,i)));
-  container.appendChild(buildAddButton());
-}
-
-/* Build a single link tile */
-function buildTile({name,url,icon}, index){
-  const wrapper = document.createElement('div');
-  wrapper.style.display = 'flex';
-  wrapper.style.flexDirection = 'column';
-  wrapper.style.alignItems = 'center';
-  wrapper.style.width = '180px'; // match tile width
-
-  const tile = document.createElement('div');
-  tile.className = 'tile';
-  tile.draggable = true;
-  tile.dataset.index = index;
-
-  tile.innerHTML = `
+    tile.innerHTML = `
     </div>
     <a href="${url}" style="text-decoration:none;color:inherit" draggable="false">
       <img src="${icon||favicon(url)}" alt="">
     </a>
   `;
 
-  /* drag events */
-  tile.addEventListener('dragstart',dragStart);
-  tile.addEventListener('dragover',dragOver);
-  tile.addEventListener('drop',drop);
+    /* drag events */
+    tile.addEventListener('dragstart', dragStart);
+    tile.addEventListener('dragover', dragOver);
+    tile.addEventListener('drop', drop);
 
-  /* sound events */
-  tile.addEventListener('mouseenter',hoverSound,{passive:true});
-  tile.addEventListener('mousedown',clickSound,{passive:true});
+    /* sound events */
+    tile.addEventListener('mouseenter', hoverSound, {
+      passive: true
+    });
+    tile.addEventListener('mousedown', clickSound, {
+      passive: true
+    });
 
-  /* make the whole tile open its link on click */
-  tile.addEventListener('click', e => {
-    // ignore clicks on the ✎ / 🗑 buttons
-    if (e.target.closest('.tile-buttons')) return;
+    /* make the whole tile open its link on click */
+    tile.addEventListener('click', e => {
+      // ignore clicks on the ✎ / 🗑 buttons
+      if (e.target.closest('.tile-buttons')) return;
 
-    // open the link
-    location.href = url;
-  });
+      // open the link
+      location.href = url;
+    });
 
-  // Create the text element OUTSIDE the tile
-  const label = document.createElement('span');
-  label.textContent = name;
-  label.className = 'tile-label'; /* Apply the CSS class here */
-  label.style.width = '100%';
-  label.style.textAlign = 'center';
-  label.style.marginTop = '8px';
-  label.style.color = 'white'; /* Default color, can be overridden by settings */
-  label.style.userSelect = 'none';
+    // Create the text element OUTSIDE the tile
+    const label = document.createElement('span');
+    label.textContent = name;
+    label.className = 'tile-label'; /* Apply the CSS class here */
+    label.style.width = '100%';
+    label.style.textAlign = 'center';
+    label.style.marginTop = '8px';
+    label.style.color = 'white'; /* Default color, can be overridden by settings */
+    label.style.userSelect = 'none';
 
-  // Apply saved text color if available
-  const savedTextColor = localStorage.getItem('textColor');
-  if (savedTextColor) {
-    label.style.color = savedTextColor;
+    // Apply saved text color if available
+    const savedTextColor = localStorage.getItem('textColor');
+    if (savedTextColor) {
+      label.style.color = savedTextColor;
+    }
+
+    // Append tile and label to wrapper
+    wrapper.appendChild(tile);
+    wrapper.appendChild(label);
+
+    return wrapper;
   }
 
-  // Append tile and label to wrapper
-  wrapper.appendChild(tile);
-  wrapper.appendChild(label);
 
-  return wrapper;
-}
-
-
-/* Build '+' add button */
-function buildAddButton(){
-  const btn=document.createElement('div');
-  btn.className='tile add-tile';
-  btn.textContent='+';
-  btn.addEventListener('click',()=>{ openModal(); });
-  btn.addEventListener('mouseenter',hoverSound,{passive:true});
-  return btn;
-}
-
-/* --------------------------  MODAL LOGIC  ---------------------------- */
-function openModal(edit=false){
-  modal.style.display='flex';
-  modalTitle.textContent=edit?'Edit Site':'Add a Site';
-  if(!edit){
-    nameInput.value=urlInput.value=iconInput.value='';
-    editIndex=null;
+  /* Build '+' add button */
+  function buildAddButton() {
+    const btn = document.createElement('div');
+    btn.className = 'tile add-tile';
+    btn.textContent = '+';
+    btn.addEventListener('click', () => {
+      openModal();
+    });
+    btn.addEventListener('mouseenter', hoverSound, {
+      passive: true
+    });
+    return btn;
   }
-  nameInput.focus();
-}
-function closeModal(){ modal.style.display='none'; }
 
-saveBtn.onclick = ()=>{
-  const name=nameInput.value.trim(), url=urlInput.value.trim(), icon=iconInput.value.trim();
-  if(!name||!url) return;
-  const entry={name,url,icon};
-  if(editIndex!==null) links[editIndex]=entry; else links.push(entry);
-  persist();
-  closeModal();
-};
-cancelBtn.onclick=closeModal;
-window.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+  /* --------------------------  MODAL LOGIC  ---------------------------- */
+  function openModal(edit = false) {
+    modal.style.display = 'flex';
+    modalTitle.textContent = edit ? 'Edit Site' : 'Add a Site';
+    if (!edit) {
+      nameInput.value = urlInput.value = iconInput.value = '';
+      editIndex = null;
+    }
+    nameInput.focus();
+  }
 
-/* ----------------------  EDIT / DELETE / DRAG  ----------------------- */
-window.editSite = idx=>{
-  const link=links[idx];
-  nameInput.value=link.name; urlInput.value=link.url; iconInput.value=link.icon||'';
-  editIndex=idx; openModal(true);
-};
-window.deleteSite = idx=>{
-  // Using a custom modal for confirmation instead of alert/confirm
-  showCustomConfirm('Delete this tile?', () => {
-    links.splice(idx,1); persist();
+  function closeModal() {
+    modal.style.display = 'none';
+  }
+
+  saveBtn.onclick = () => {
+    const name = nameInput.value.trim(),
+      url = urlInput.value.trim(),
+      icon = iconInput.value.trim();
+    if (!name || !url) return;
+    const entry = {
+      name,
+      url,
+      icon
+    };
+    if (editIndex !== null) links[editIndex] = entry;
+    else links.push(entry);
+    persist();
+    closeModal();
+  };
+  cancelBtn.onclick = closeModal;
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
   });
-};
 
-/* drag‑and‑drop order */
-let dragStartIndex;
-function dragStart(e){ dragStartIndex=+this.dataset.index; e.dataTransfer.effectAllowed='move'; }
-function dragOver(e){
-  e.preventDefault();
-  const overIndex=+this.dataset.index;
-  if(dragStartIndex===overIndex) return;
-  const moved=links.splice(dragStartIndex,1)[0];
-  links.splice(overIndex,0,moved);
-  dragStartIndex=overIndex;
-  persist(false); // don't play flash re‑render too often
-}
-function drop(e){ e.preventDefault(); renderTiles(); }
+  /* ----------------------  EDIT / DELETE / DRAG  ----------------------- */
+  window.editSite = idx => {
+    const link = links[idx];
+    nameInput.value = link.name;
+    urlInput.value = link.url;
+    iconInput.value = link.icon || '';
+    editIndex = idx;
+    openModal(true);
+  };
+  window.deleteSite = idx => {
+    // Using a custom modal for confirmation instead of alert/confirm
+    showCustomConfirm('Delete this tile?', () => {
+      links.splice(idx, 1);
+      persist();
+    });
+  };
 
-/* ------------------------------ UTIL ------------------------------- */
-function persist(rerender=true){
-  localStorage.setItem('tiles',JSON.stringify(links));
-  if(rerender) renderTiles();
-}
+  /* drag‑and‑drop order */
+  let dragStartIndex;
 
-/* -------------------------- INITIALISE ---------------------------- */
-window.onload = function() {
+  function dragStart(e) {
+    dragStartIndex = +this.dataset.index;
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  function dragOver(e) {
+    e.preventDefault();
+    const overIndex = +this.dataset.index;
+    if (dragStartIndex === overIndex) return;
+    const moved = links.splice(dragStartIndex, 1)[0];
+    links.splice(overIndex, 0, moved);
+    dragStartIndex = overIndex;
+    persist(false); // don't play flash re‑render too often
+  }
+
+  function drop(e) {
+    e.preventDefault();
+    renderTiles();
+  }
+
+  /* ------------------------------ UTIL ------------------------------- */
+  function persist(rerender = true) {
+    localStorage.setItem('tiles', JSON.stringify(links));
+    if (rerender) renderTiles();
+  }
+
+  /* -------------------------- INITIALISE ---------------------------- */
+  window.onload = function() {
     const searchInput = document.querySelector('.search-input');
     if (searchInput) { // Check if the element exists
-        searchInput.focus(); // Automatically focuses the search input
+      searchInput.focus(); // Automatically focuses the search input
     }
-};
-
-renderTiles();
-
-const editBtn = document.getElementById('editBtn');
-const editModal = document.getElementById('editModal');
-const textColorInput = document.getElementById('textColorInput');
-const tileColorInput = document.getElementById('tileColorInput');
-const bgFileInput = document.getElementById('bgFileInput');
-const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-const cancelSettingsBtn = document.getElementById('cancelSettingsBtn');
-
-// Functions to show/hide the edit button on right-click of empty space
-const editButtonContextMenu = document.getElementById('editButtonContextMenu');
-
-function showEditButtonAt(x, y) {
-  editButtonContextMenu.style.top = y + 'px';
-  editButtonContextMenu.style.left = x + 'px';
-  editButtonContextMenu.style.display = 'block';
-}
-
-function hideEditButton() {
-  editButtonContextMenu.style.display = 'none';
-}
-
-function openEditModal() {
-  // Load saved settings or defaults
-  textColorInput.value = localStorage.getItem('textColor') || '#FFFFFF'; // Default to white
-  const savedTileColor = localStorage.getItem('tileColor') || 'rgba(255,255,255,0.4)';
-  tileColorInput.value = rgbaToHex(savedTileColor);
-
-  editModal.style.display = 'flex';
-  hideEditButton(); // Hide the edit button once the modal is opened
-}
-
-function closeEditModal() {
-  editModal.style.display = 'none';
-}
-
-// editBtn.addEventListener('click', openEditModal); // This will be handled by the right-click now
-cancelSettingsBtn.addEventListener('click', closeEditModal);
-window.addEventListener('keydown', e => { if(e.key === 'Escape') closeEditModal(); });
-
-// Convert rgba string to hex (approximate)
-function rgbaToHex(rgba) {
-  const parts = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-  if (!parts) return '#ffffff';
-  let r = parseInt(parts[1]).toString(16).padStart(2, '0');
-  let g = parseInt(parts[2]).toString(16).padStart(2, '0');
-  let b = parseInt(parts[3]).toString(16).padStart(2, '0');
-  return `#${r}${g}${b}`;
-}
-
-// Convert hex to rgba with alpha (fixed 0.4 for tile background)
-function hexToRgba(hex) {
-  const bigint = parseInt(hex.slice(1), 16);
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
-  return `rgba(${r},${g},${b},0.4)`;
-}
-
-bgFileInput.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(event) {
-    const dataUrl = event.target.result;
-    document.body.style.background = `url('${dataUrl}') center/cover no-repeat fixed`;
-    localStorage.setItem('customBackground', dataUrl);
   };
-  reader.readAsDataURL(file);
-});
 
-saveSettingsBtn.addEventListener('click', () => {
-  const textColor = textColorInput.value;
-  const tileColorHex = tileColorInput.value;
-  const tileColor = hexToRgba(tileColorHex);
-  const selectedFont = document.getElementById('fontFamilySelect').value;
+  renderTiles();
 
-  localStorage.setItem('textColor', textColor);
-  localStorage.setItem('tileColor', tileColor);
-  localStorage.setItem('fontFamily', selectedFont);
-
-  // Apply changes immediately:
-  document.querySelectorAll('.tile-label').forEach(label => {
-    label.style.color = textColor;
-    label.style.fontFamily = selectedFont;
-  });
-
-  document.querySelectorAll('.tile').forEach(tile => {
-    tile.style.background = tileColor;
-  });
-
-  closeEditModal();
-});
+  const editBtn = document.getElementById('editBtn');
+  const editModal = document.getElementById('editModal');
+  const textColorInput = document.getElementById('textColorInput');
+  const tileColorInput = document.getElementById('tileColorInput');
+  const bgFileInput = document.getElementById('bgFileInput');
+  const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+  const cancelSettingsBtn = document.getElementById('cancelSettingsBtn');
+  const fontFamilySelect = document.getElementById('fontFamilySelect');
+  const clockFontFamilySelect = document.getElementById('clockFontFamilySelect');
+  const resetBgBtn = document.getElementById('resetBgBtn'); // Get the reset button
 
 
-// On page load, restore saved settings:
-window.addEventListener('load', () => {
-  const savedBg = localStorage.getItem('customBackground');
-  if (savedBg) {
-    document.body.style.background = `url('${savedBg}') center/cover no-repeat fixed`;
+  // Functions to show/hide the edit button on right-click of empty space
+  const editButtonContextMenu = document.getElementById('editButtonContextMenu');
+
+  function showEditButtonAt(x, y) {
+    editButtonContextMenu.style.top = y + 'px';
+    editButtonContextMenu.style.left = x + 'px';
+    editButtonContextMenu.style.display = 'block';
   }
-  const savedTextColor = localStorage.getItem('textColor');
-  if (savedTextColor) {
+
+  function hideEditButton() {
+    editButtonContextMenu.style.display = 'none';
+  }
+
+  function openEditModal() {
+    // Load saved settings or defaults
+    textColorInput.value = localStorage.getItem('textColor') || '#FFFFFF'; // Default to white
+    const savedTileColor = localStorage.getItem('tileColor') || 'rgba(255,255,255,0.4)';
+    tileColorInput.value = rgbaToHex(savedTileColor);
+
+    // Set font family dropdown to current value
+    const currentFontFamily = localStorage.getItem('fontFamily');
+    if (currentFontFamily) {
+        fontFamilySelect.value = currentFontFamily;
+    } else {
+        fontFamilySelect.value = "'Roboto', sans-serif"; // Default if nothing saved
+    }
+
+    // Set clock font family dropdown to current value
+    const currentClockFontFamily = localStorage.getItem('clockFontFamily');
+    if (currentClockFontFamily) {
+        clockFontFamilySelect.value = currentClockFontFamily;
+    } else {
+        clockFontFamilySelect.value = "'climate crisis', serif"; // Default if nothing saved
+    }
+
+
+    editModal.style.display = 'flex';
+    hideEditButton(); // Hide the edit button once the modal is opened
+  }
+
+  function closeEditModal() {
+    editModal.style.display = 'none';
+  }
+
+  // editBtn.addEventListener('click', openEditModal); // This will be handled by the right-click now
+  cancelSettingsBtn.addEventListener('click', closeEditModal);
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeEditModal();
+  });
+
+  // Convert rgba string to hex (approximate)
+  function rgbaToHex(rgba) {
+    const parts = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    if (!parts) return '#ffffff';
+    let r = parseInt(parts[1]).toString(16).padStart(2, '0');
+    let g = parseInt(parts[2]).toString(16).padStart(2, '0');
+    let b = parseInt(parts[3]).toString(16).padStart(2, '0');
+    return `#${r}${g}${b}`;
+  }
+
+  // Convert hex to rgba with alpha (fixed 0.4 for tile background)
+  function hexToRgba(hex) {
+    const bigint = parseInt(hex.slice(1), 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r},${g},${b},0.4)`;
+  }
+
+  bgFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const dataUrl = event.target.result;
+      document.body.style.background = `url('${dataUrl}') center/cover no-repeat fixed`;
+      localStorage.setItem('customBackground', dataUrl);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  saveSettingsBtn.addEventListener('click', () => {
+    const textColor = textColorInput.value;
+    const tileColorHex = tileColorInput.value;
+    const tileColor = hexToRgba(tileColorHex);
+    const selectedFont = fontFamilySelect.value;
+    const selectedClockFont = clockFontFamilySelect.value;
+
+    localStorage.setItem('textColor', textColor);
+    localStorage.setItem('tileColor', tileColor);
+    localStorage.setItem('fontFamily', selectedFont);
+    localStorage.setItem('clockFontFamily', selectedClockFont);
+
+    // Apply changes immediately:
     document.querySelectorAll('.tile-label').forEach(label => {
-      label.style.color = savedTextColor; /* Use savedTextColor here */
+      label.style.color = textColor;
+      label.style.fontFamily = selectedFont;
     });
-  }
-  const savedTileColor = localStorage.getItem('tileColor');
-  if (savedTileColor) {
-    document.querySelectorAll('.tile').forEach(tile => {
-      tile.style.background = savedTileColor;
-    });
-  }
 
-  const savedFontFamily = localStorage.getItem('fontFamily');
-if (savedFontFamily) {
-  document.querySelectorAll('.tile-label').forEach(label => {
-    label.style.fontFamily = savedFontFamily;
+    document.querySelectorAll('.tile').forEach(tile => {
+      tile.style.background = tileColor;
+    });
+
+    document.getElementById('digital-clock').style.fontFamily = selectedClockFont;
+
+    closeEditModal();
   });
 
-  // Also pre-select in dropdown if modal is opened later
-  const fontSelect = document.getElementById('fontFamilySelect');
-  if (fontSelect) fontSelect.value = savedFontFamily;
-}
-});
 
-const exportBtn = document.getElementById('exportBtn');
-const importBtn = document.getElementById('importBtn');
-const importInput = document.getElementById('importInput');
-
-exportBtn.addEventListener('click', () => {
-  const data = {
-    tiles: links,
-    textColor: localStorage.getItem('textColor'),
-    tileColor: localStorage.getItem('tileColor'),
-    customBackground: localStorage.getItem('customBackground')
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'dashboard_state.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-});
-
-importBtn.addEventListener('click', () => {
-  importInput.click();
-});
-
-importInput.addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(event) {
-    try {
-      const data = JSON.parse(event.target.result);
-      if (!data.tiles || !Array.isArray(data.tiles)) {
-        showCustomAlert('Invalid state file.');
-        return;
-      }
-
-      // Apply data
-      links = data.tiles;
-      localStorage.setItem('tiles', JSON.stringify(links));
-
-      if (data.textColor) localStorage.setItem('textColor', data.textColor);
-      if (data.tileColor) localStorage.setItem('tileColor', data.tileColor);
-      if (data.customBackground) localStorage.setItem('customBackground', data.customBackground);
-
-      // Refresh page styles
-      location.reload();
-
-    } catch (err) {
-      showCustomAlert('Error importing state: ' + err.message);
+  // On page load, restore saved settings:
+  window.addEventListener('load', () => {
+    // Background is already handled by the initial script block
+    const savedTextColor = localStorage.getItem('textColor');
+    if (savedTextColor) {
+      document.querySelectorAll('.tile-label').forEach(label => {
+        label.style.color = savedTextColor; /* Use savedTextColor here */
+      });
     }
-  };
-  reader.readAsText(file);
-});
+    const savedTileColor = localStorage.getItem('tileColor');
+    if (savedTileColor) {
+      document.querySelectorAll('.tile').forEach(tile => {
+        tile.style.background = savedTileColor;
+      });
+    }
 
-/* ---------- CUSTOM ALERT/CONFIRM MODALS ---------- */
-// Create a generic modal for alerts and confirmations
-const genericModal = document.createElement('div');
-genericModal.className = 'modal';
-genericModal.innerHTML = `
+    const savedFontFamily = localStorage.getItem('fontFamily');
+    if (savedFontFamily) {
+      document.querySelectorAll('.tile-label').forEach(label => {
+        label.style.fontFamily = savedFontFamily;
+      });
+
+      // Also pre-select in dropdown if modal is opened later
+      const fontSelect = document.getElementById('fontFamilySelect');
+      if (fontSelect) fontSelect.value = savedFontFamily;
+    }
+    const savedClockFontFamily = localStorage.getItem('clockFontFamily');
+    if (savedClockFontFamily) {
+      const clockElement = document.getElementById('digital-clock');
+      if (clockElement) {
+        clockElement.style.fontFamily = savedClockFontFamily;
+      }
+      const clockFontSelect = document.getElementById('clockFontFamilySelect');
+      if (clockFontSelect) {
+        clockFontSelect.value = savedClockFontFamily;
+      }
+    }
+  });
+
+  const exportBtn = document.getElementById('exportBtn');
+  const importBtn = document.getElementById('importBtn');
+  const importInput = document.getElementById('importInput');
+
+  exportBtn.addEventListener('click', () => {
+    const data = {
+      tiles: links,
+      textColor: localStorage.getItem('textColor'),
+      tileColor: localStorage.getItem('tileColor'),
+      customBackground: localStorage.getItem('customBackground')
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json'
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'dashboard_state.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  importBtn.addEventListener('click', () => {
+    importInput.click();
+  });
+
+  importInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (!data.tiles || !Array.isArray(data.tiles)) {
+          showCustomAlert('Invalid state file.');
+          return;
+        }
+
+        // Apply data
+        links = data.tiles;
+        localStorage.setItem('tiles', JSON.stringify(links));
+
+        if (data.textColor) localStorage.setItem('textColor', data.textColor);
+        if (data.tileColor) localStorage.setItem('tileColor', data.tileColor);
+        if (data.customBackground) localStorage.setItem('customBackground', data.customBackground);
+
+        // Refresh page styles
+        location.reload();
+
+      } catch (err) {
+        showCustomAlert('Error importing state: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  /* ---------- CUSTOM ALERT/CONFIRM MODALS ---------- */
+  // Create a generic modal for alerts and confirmations
+  const genericModal = document.createElement('div');
+  genericModal.className = 'modal';
+  genericModal.innerHTML = `
   <div class="modal-content">
     <h2 id="genericModalTitle"></h2>
     <p id="genericModalMessage"></p>
@@ -704,172 +810,175 @@ genericModal.innerHTML = `
     </div>
   </div>
 `;
-document.body.appendChild(genericModal);
+  document.body.appendChild(genericModal);
 
-const genericModalTitle = document.getElementById('genericModalTitle');
-const genericModalMessage = document.getElementById('genericModalMessage');
-const genericModalConfirmBtn = document.getElementById('genericModalConfirmBtn');
-const genericModalCancelBtn = document.getElementById('genericModalCancelBtn');
-const genericModalCloseBtn = document.getElementById('genericModalCloseBtn');
+  const genericModalTitle = document.getElementById('genericModalTitle');
+  const genericModalMessage = document.getElementById('genericModalMessage');
+  const genericModalConfirmBtn = document.getElementById('genericModalConfirmBtn');
+  const genericModalCancelBtn = document.getElementById('genericModalCancelBtn');
+  const genericModalCloseBtn = document.getElementById('genericModalCloseBtn');
 
-function showCustomAlert(message) {
-  genericModalTitle.textContent = 'Alert';
-  genericModalMessage.textContent = message;
-  genericModalConfirmBtn.style.display = 'none';
-  genericModalCancelBtn.style.display = 'none';
-  genericModalCloseBtn.style.display = 'inline-block';
-  genericModal.style.display = 'flex';
-  genericModalCloseBtn.onclick = () => genericModal.style.display = 'none';
-}
+  function showCustomAlert(message) {
+    genericModalTitle.textContent = 'Alert';
+    genericModalMessage.textContent = message;
+    genericModalConfirmBtn.style.display = 'none';
+    genericModalCancelBtn.style.display = 'none';
+    genericModalCloseBtn.style.display = 'inline-block';
+    genericModal.style.display = 'flex';
+    genericModalCloseBtn.onclick = () => genericModal.style.display = 'none';
+  }
 
-function showCustomConfirm(message, onConfirm) {
-  genericModalTitle.textContent = 'Confirm Action';
-  genericModalMessage.textContent = message;
-  genericModalConfirmBtn.style.display = 'inline-block';
-  genericModalCancelBtn.style.display = 'inline-block';
-  genericModalCloseBtn.style.display = 'none';
-  genericModal.style.display = 'flex';
+  function showCustomConfirm(message, onConfirm) {
+    genericModalTitle.textContent = 'Confirm Action';
+    genericModalMessage.textContent = message;
+    genericModalConfirmBtn.style.display = 'inline-block';
+    genericModalCancelBtn.style.display = 'inline-block';
+    genericModalCloseBtn.style.display = 'none';
+    genericModal.style.display = 'flex';
 
-  genericModalConfirmBtn.onclick = () => {
-    onConfirm();
-    genericModal.style.display = 'none';
-  };
-  genericModalCancelBtn.onclick = () => {
-    genericModal.style.display = 'none';
-  };
-}
+    genericModalConfirmBtn.onclick = () => {
+      onConfirm();
+      genericModal.style.display = 'none';
+    };
+    genericModalCancelBtn.onclick = () => {
+      genericModal.style.display = 'none';
+    };
+  }
 
 
-/* ---------- CONTEXT-MENU (right-click) LOGIC ---------- */
-const ctxMenu = document.createElement('div');
-ctxMenu.className = 'context-menu';
-ctxMenu.innerHTML = `
+  /* ---------- CONTEXT-MENU (right-click) LOGIC ---------- */
+  const ctxMenu = document.createElement('div');
+  ctxMenu.className = 'context-menu';
+  ctxMenu.innerHTML = `
   <button id="ctxEdit">✎ Edit</button>
   <button id="ctxDelete">🗑 Delete</button>`;
-document.body.appendChild(ctxMenu);
+  document.body.appendChild(ctxMenu);
 
-let ctxIndex = null;
+  let ctxIndex = null;
 
-/* open custom menu on tile right-click */
-container.addEventListener('contextmenu', e=>{
-  const tile = e.target.closest('.tile');
-  if(!tile) { // If not a tile, hide the tile context menu
-    ctxMenu.style.display = 'none';
-    return;
-  }
-  e.preventDefault();
-
-  ctxIndex = +tile.dataset.index;
-  ctxMenu.style.top    = e.clientY + 'px';
-  ctxMenu.style.left = e.clientX + 'px';
-  ctxMenu.style.display = 'block';
-});
-
-/* hide menu when clicking elsewhere */
-document.addEventListener('click', e=>{
-  if(!e.target.closest('.context-menu')) ctxMenu.style.display = 'none';
-});
-
-/* menu actions */
-document.getElementById('ctxEdit').addEventListener('click', ()=>{
-  if(ctxIndex!==null) editSite(ctxIndex);
-  ctxMenu.style.display = 'none';
-});
-document.getElementById('ctxDelete').addEventListener('click', ()=>{
-  if(ctxIndex!==null) deleteSite(ctxIndex);
-  ctxMenu.style.display = 'none';
-});
-
-// Get a reference to your new "bookmarks" button
-const resetBgButton = document.getElementById('bookmarks'); //
-resetBgButton.addEventListener('click', () => { //
-
-  const urlToOpen = 'chrome://browser/content/places/places.xhtml ';
-  window.open(urlToOpen, '_blank');
-
-  editButtonContextMenu.style.display = 'none'; //
-});
-
-    // JavaScript for the digital clock
-    function updateDigitalClock() {
-      const now = new Date(); // Get current date and time
-      let hours = now.getHours(); // Get hours
-      let minutes = now.getMinutes(); // Get minutes
-      // Removed seconds as per request
-
-      // Add leading zero if less than 10
-      hours = hours < 10 ? '0' + hours : hours;
-      minutes = minutes < 10 ? '0' + minutes : minutes;
-
-      // Format the time string (only hours and minutes)
-      const timeString = `${hours}:${minutes}`;
-
-      // Update the clock display
-      document.getElementById('digital-clock').textContent = timeString;
+  /* open custom menu on tile right-click */
+  container.addEventListener('contextmenu', e => {
+    const tile = e.target.closest('.tile');
+    if (!tile) { // If not a tile, hide the tile context menu
+      ctxMenu.style.display = 'none';
+      return;
     }
+    e.preventDefault();
 
-    // Call updateDigitalClock once to display time immediately
-    updateDigitalClock();
+    ctxIndex = +tile.dataset.index;
+    ctxMenu.style.top = e.clientY + 'px';
+    ctxMenu.style.left = e.clientX + 'px';
+    ctxMenu.style.display = 'block';
+  });
 
-    // Update the clock every second
-    setInterval(updateDigitalClock, 1000);
+  /* hide menu when clicking elsewhere */
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.context-menu')) ctxMenu.style.display = 'none';
+  });
 
-const searchForm = document.querySelector('.search-container form');
-const searchInput = document.querySelector('.search-input');
-
-// Play hover sound
-searchForm.addEventListener('mouseenter', hoverSound, { passive: true });
-
-// Play click sound on submit
-searchForm.addEventListener('submit', () => clickSound());
-
-// Add hover class on typing
-searchInput.addEventListener('input', () => {
-  searchForm.classList.add('hovered');
-});
-
-// Add hover class on click/focus
-searchInput.addEventListener('focus', () => {
-  searchForm.classList.add('pressed');
-
-});
-
-// Remove hover class when clicking away
-searchInput.addEventListener('blur', () => {
-  searchForm.classList.remove('hovered');
-  searchInput.value = ''; 
-});
+  /* menu actions */
+  document.getElementById('ctxEdit').addEventListener('click', () => {
+    if (ctxIndex !== null) editSite(ctxIndex);
+    ctxMenu.style.display = 'none';
+  });
+  document.getElementById('ctxDelete').addEventListener('click', () => {
+    if (ctxIndex !== null) deleteSite(ctxIndex);
+    ctxMenu.style.display = 'none';
+  });
 
 
-// Add event listener to the body for right-clicks to show edit button
-document.body.addEventListener('contextmenu', e => {
-  // Check if the right-click was NOT on a tile or the add button or any other interactive element
-  const clickedOnTileOrAdd = e.target.closest('.tile') || e.target.closest('.add-tile');
-  const clickedOnContextMenu = e.target.closest('.context-menu');
-  const clickedOnModal = e.target.closest('.modal');
-  const clickedOnSearch = e.target.closest('.search-container');
-  const clickedOnClock = e.target.closest('#digital-clock');
+  // JavaScript for the digital clock
+  function updateDigitalClock() {
+    const now = new Date(); // Get current date and time
+    let hours = now.getHours(); // Get hours
+    let minutes = now.getMinutes(); // Get minutes
+    // Removed seconds as per request
 
+    // Add leading zero if less than 10
+    hours = hours < 10 ? '0' + hours : hours;
+    minutes = minutes < 10 ? '0' + minutes : minutes;
 
-  if (!clickedOnTileOrAdd && !clickedOnContextMenu && !clickedOnModal && !clickedOnSearch && !clickedOnClock) {
-    e.preventDefault(); // Prevent default browser context menu
-    hideEditButton(); // Hide it first to avoid flicker if already visible
-    showEditButtonAt(e.clientX, e.clientY);
-  } else {
-    hideEditButton(); // If clicked on a recognized element, hide the edit button
+    // Format the time string (only hours and minutes)
+    const timeString = `${hours}:${minutes}`;
+
+    // Update the clock display
+    document.getElementById('digital-clock').textContent = timeString;
   }
-});
 
-// Hide the edit button when clicking anywhere else
-document.addEventListener('click', e => {
-  // Ensure we don't hide the button if the click was *on* the edit button itself, or a modal, or the context menu
-  if (!e.target.closest('#editBtn') && !e.target.closest('.context-menu') && !e.target.closest('.modal')) {
-    hideEditButton();
-  }
-});
+  // Call updateDigitalClock once to display time immediately
+  updateDigitalClock();
 
-// Re-assign the click listener for the edit button to open the modal
-editBtn.addEventListener('click', openEditModal);
+  // Update the clock every second
+  setInterval(updateDigitalClock, 1000);
+
+  const searchForm = document.querySelector('.search-container form');
+  const searchInput = document.querySelector('.search-input');
+
+  // Play hover sound
+  searchForm.addEventListener('mouseenter', hoverSound, {
+    passive: true
+  });
+
+  // Play click sound on submit
+  searchForm.addEventListener('submit', () => clickSound());
+
+  // Add hover class on typing
+  searchInput.addEventListener('input', () => {
+    searchForm.classList.add('hovered');
+  });
+
+  // Add hover class on click/focus
+  searchInput.addEventListener('focus', () => {
+    searchForm.classList.add('pressed');
+
+  });
+
+  // Remove hover class when clicking away
+  searchInput.addEventListener('blur', () => {
+    searchForm.classList.remove('hovered');
+    searchInput.value = '';
+  });
+
+
+  // Add event listener to the body for right-clicks to show edit button
+  document.body.addEventListener('contextmenu', e => {
+    // Check if the right-click was NOT on a tile or the add button or any other interactive element
+    const clickedOnTileOrAdd = e.target.closest('.tile') || e.target.closest('.add-tile');
+    const clickedOnContextMenu = e.target.closest('.context-menu');
+    const clickedOnModal = e.target.closest('.modal');
+    const clickedOnSearch = e.target.closest('.search-container');
+    const clickedOnClock = e.target.closest('#digital-clock');
+
+
+    if (!clickedOnTileOrAdd && !clickedOnContextMenu && !clickedOnModal && !clickedOnSearch && !clickedOnClock) {
+      e.preventDefault(); // Prevent default browser context menu
+      hideEditButton(); // Hide it first to avoid flicker if already visible
+      showEditButtonAt(e.clientX, e.clientY);
+    } else {
+      hideEditButton(); // If clicked on a recognized element, hide the edit button
+    }
+  });
+
+  // Hide the edit button when clicking anywhere else
+  document.addEventListener('click', e => {
+    // Ensure we don't hide the button if the click was *on* the edit button itself, or a modal, or the context menu
+    if (!e.target.closest('#editBtn') && !e.target.closest('.context-menu') && !e.target.closest('.modal')) {
+      hideEditButton();
+    }
+  });
+
+  // Re-assign the click listener for the edit button to open the modal
+  editBtn.addEventListener('click', openEditModal);
+
+  // Corrected reset background button logic
+  resetBgBtn.addEventListener('click', () => {
+    showCustomConfirm('Are you sure you want to reset the background image to default?', () => {
+      localStorage.removeItem('customBackground'); // Remove only the custom background setting
+      // Apply the default background directly
+      document.body.style.background = `url('${defaultBackground}') center/cover no-repeat fixed`;
+      // No need to reload the page!
+    });
+  });
 </script>
 </body>
 </html>
