@@ -110,16 +110,16 @@ body {
 }
 
 .editbtn{
- position: fixed;
-  top: 785px;
-  right: 20px;
+  /* Original styles, but changed display to none */
+  display: none; /* Changed from position: fixed; top: 785px; right: 20px; */
   padding: 10px 15px;
   border: none;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.3);;
+  background: rgba(255, 255, 255, 0.3);
   cursor: pointer;
   z-index: 1000;
 }
+
 
 /* sağ tık burger menü */
 .context-menu{
@@ -227,6 +227,7 @@ body {
   text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7); 
 }
 
+
 </style>
 </head>
 <body>
@@ -241,7 +242,6 @@ body {
 
     <div class="container" id="tilesContainer"></div>
 
-  <!-- Modal -->
   <div class="modal" id="siteModal">
     <div class="modal-content">
       <h2 id="modalTitle">Add a Site</h2>
@@ -255,7 +255,6 @@ body {
 
  <button class="editbtn"  id="editBtn">Edit</button>
 
-<!-- Edit Settings Modal -->
 <div class="modal" id="editModal">
   <div class="modal-content" style="min-width:320px;">
     <h2>Edit Settings</h2>
@@ -279,7 +278,6 @@ body {
     </select>
     </label>
 
-
     <label>
       Tile Color:
       <input type="color" id="tileColorInput" value="rgba(255,255,255,0.4)" />
@@ -302,8 +300,7 @@ body {
 <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
 
 
-<!-- saat -->
-  <div id="digital-clock"></div>
+<div id="digital-clock"></div>
 
 
 <script>
@@ -511,6 +508,20 @@ const bgFileInput = document.getElementById('bgFileInput');
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
 const cancelSettingsBtn = document.getElementById('cancelSettingsBtn');
 
+// Functions to show/hide the edit button on right-click of empty space
+function showEditButtonAt(x, y) {
+  editBtn.style.top = y + 'px';
+  editBtn.style.left = x + 'px';
+  editBtn.style.position = 'fixed'; // Ensure it's positioned absolutely relative to the viewport
+  editBtn.style.display = 'block';
+  editBtn.style.zIndex = '2000'; // Ensure it's above other elements
+}
+
+function hideEditButton() {
+  editBtn.style.display = 'none';
+}
+
+
 function openEditModal() {
   // Load saved settings or defaults
   textColorInput.value = localStorage.getItem('textColor') || '#FFFFFF'; // Default to white
@@ -518,13 +529,14 @@ function openEditModal() {
   tileColorInput.value = rgbaToHex(savedTileColor);
 
   editModal.style.display = 'flex';
+  hideEditButton(); // Hide the edit button once the modal is opened
 }
 
 function closeEditModal() {
   editModal.style.display = 'none';
 }
 
-editBtn.addEventListener('click', openEditModal);
+// editBtn.addEventListener('click', openEditModal); // This will be handled by the right-click now
 cancelSettingsBtn.addEventListener('click', closeEditModal);
 window.addEventListener('keydown', e => { if(e.key === 'Escape') closeEditModal(); });
 
@@ -736,7 +748,10 @@ let ctxIndex = null;
 /* open custom menu on tile right-click */
 container.addEventListener('contextmenu', e=>{
   const tile = e.target.closest('.tile');
-  if(!tile) return;          // let browser handle other areas
+  if(!tile) { // If not a tile, hide the tile context menu
+    ctxMenu.style.display = 'none';
+    return;
+  }
   e.preventDefault();
 
   ctxIndex = +tile.dataset.index;
@@ -809,6 +824,37 @@ searchInput.addEventListener('blur', () => {
   searchForm.classList.remove('hovered');
   searchInput.value = ''; 
 });
+
+
+// Add event listener to the body for right-clicks to show edit button
+document.body.addEventListener('contextmenu', e => {
+  // Check if the right-click was NOT on a tile or the add button or any other interactive element
+  const clickedOnTileOrAdd = e.target.closest('.tile') || e.target.closest('.add-tile');
+  const clickedOnContextMenu = e.target.closest('.context-menu');
+  const clickedOnModal = e.target.closest('.modal');
+  const clickedOnSearch = e.target.closest('.search-container');
+  const clickedOnClock = e.target.closest('#digital-clock');
+
+
+  if (!clickedOnTileOrAdd && !clickedOnContextMenu && !clickedOnModal && !clickedOnSearch && !clickedOnClock) {
+    e.preventDefault(); // Prevent default browser context menu
+    hideEditButton(); // Hide it first to avoid flicker if already visible
+    showEditButtonAt(e.clientX, e.clientY);
+  } else {
+    hideEditButton(); // If clicked on a recognized element, hide the edit button
+  }
+});
+
+// Hide the edit button when clicking anywhere else
+document.addEventListener('click', e => {
+  // Ensure we don't hide the button if the click was *on* the edit button itself, or a modal, or the context menu
+  if (!e.target.closest('#editBtn') && !e.target.closest('.context-menu') && !e.target.closest('.modal')) {
+    hideEditButton();
+  }
+});
+
+// Re-assign the click listener for the edit button to open the modal
+editBtn.addEventListener('click', openEditModal);
 </script>
 </body>
 </html>
