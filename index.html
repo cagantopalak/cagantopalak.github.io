@@ -855,6 +855,19 @@ document.addEventListener('click', e => {
 
 // Re-assign the click listener for the edit button to open the modal
 editBtn.addEventListener('click', openEditModal);
+
+/* ---------- One-time Page Reload Logic ---------- */
+// Check if the page has already reloaded in this session
+if (!sessionStorage.getItem('hasReloaded')) {
+  // If not, set the flag and reload the page
+  sessionStorage.setItem('hasReloaded', 'true');
+  location.reload();
+} else {
+  // If it has already reloaded, remove the flag for the next session
+  // This ensures it will reload again if the user closes and reopens the tab/browser
+  sessionStorage.removeItem('hasReloaded');
+}
+
 </script>
 </body>
 </html>
